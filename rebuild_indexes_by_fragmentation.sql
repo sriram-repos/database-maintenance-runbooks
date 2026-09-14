@@ -29,7 +29,7 @@ SET NOCOUNT ON;
 DECLARE @MinPageCount        INT = 1000;
 DECLARE @ReorganizeThreshold FLOAT = 5.0;
 DECLARE @RebuildThreshold    FLOAT = 30.0;
-DECLARE @ExecuteCommands     BIT = 0;   -- 0 = dry run (recommended first pass)
+DECLARE @ExecuteCommands     BIT = 0;   
 DECLARE @OnlineRebuild       BIT = 1;   -- 1 = ONLINE = ON where supported
 
 DECLARE @SchemaName SYSNAME, @TableName SYSNAME, @IndexName SYSNAME;
@@ -88,13 +88,15 @@ BEGIN
         SET @SQL = N'ALTER INDEX ' + QUOTENAME(@IndexName) +
                    N' ON ' + QUOTENAME(@SchemaName) + N'.' + QUOTENAME(@TableName) +
                    N' REORGANIZE;';
-
+        --PRINT @TableName + ' -- ' + @IndexName + ' -- ' + @Fragmentation + ' -- ' + @PageCount;
         INSERT INTO #IndexMaintenanceLog VALUES
             (@SchemaName, @TableName, @IndexName, @Fragmentation, @PageCount, 'REORGANIZE', @SQL, NULL);
     END
 
     IF @ExecuteCommands = 1
     BEGIN
+        --PRINT 'ExecuteCommands=1';
+      
         BEGIN TRY
             EXEC sp_executesql @SQL;
             UPDATE #IndexMaintenanceLog
@@ -107,6 +109,7 @@ BEGIN
     END
     ELSE
     BEGIN
+        --PRINT @ExecuteCommnds;
         PRINT @SQL;  -- dry run output
     END
 
