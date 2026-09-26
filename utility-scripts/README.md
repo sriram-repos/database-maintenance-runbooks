@@ -18,4 +18,4 @@ such as log extraction, monitoring, and multi-instance reporting.
   assumes integrated auth or can use a credential store.
 - Both scripts are read-only against the target instances.
 - Designed to be dropped into a scheduled task, SQL Agent job step, or
-  Azure Automation runbook with minimal changes.
+  Azure Automation runbook.
