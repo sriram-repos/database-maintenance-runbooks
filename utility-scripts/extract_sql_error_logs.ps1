@@ -1,10 +1,11 @@
 <#
 
 .WHAT THIS SCRIPT DOES
-    Uses the SqlServer PowerShell module to query sys.xp_readerrorlog-style
-    output via Invoke-Sqlcmd against xp_readerrorlog. Filters for entries
-    containing common severity/error indicators and exports a clean CSV
-    per run, timestamped.
+    	Script Headers & Inputs: Accepts server instances, target directory, and time window
+	Directory & Time Setup: Verifies .\logs folder existence and calculates the target date window
+	Looping SQL Query: Connects to each SQL server instance, executes xp_readerrorlog into a temp table (#ErrorLog), and filters for keyword matches (error, fail, severity, corrupt)
+	Data Tagging: Tag each returned record with its SourceInstance to distinguish records when combining multi-server outputs
+	CSV Export: Combines all captured logs and writes them out to a timestamped CSV file (sql_error_log_extract_YYYYMMDD_HHMMSS.csv)
 
 .CREATED BY
     Author:       Sriram Krishnamurthy
@@ -19,27 +20,37 @@
 #>
 
 param(
+    #Mandatory parameter. Can't proceed without a SQL Server instance
     [Parameter(Mandatory = $true)]
     [string[]]$SqlInstances,
 
+    #Store your error logs. Archiving is a separate process.
     [string]$OutputFolder = ".\logs",
 
+    #Lookback period. I've defaulted this to 24 hours. Uusual diagnostics lookback period.
     [int]$HoursBack = 24
 )
 
+#Official Powershell module for SQL to use Invoke-Sql cmd
 Import-Module SqlServer -ErrorAction Stop
 
+#Check if output folder is present else create.
 if (-not (Test-Path $OutputFolder)) {
     New-Item -ItemType Directory -Path $OutputFolder | Out-Null
 }
 
 $cutoffTime = (Get-Date).AddHours(-$HoursBack)
 $timestamp  = Get-Date -Format "yyyyMMdd_HHmmss"
+#this array collects all error log entries
 $allResults = @()
+
+#start the error log collection for every instance provided.
+#for each instance provided execute the system procedure xp_readerrorlog 
+#store the result into temporary table ErrorLog. You have to define temp table based on exact resultset from xp_readerrorlog
 
 foreach ($instance in $SqlInstances) {
 
-    Write-Host "Querying error log on $instance ..." -ForegroundColor Cyan
+    Write-Host "Querying error log on $instance ..." -ForegroundColor White
 
     try {
         $query = @"
@@ -69,7 +80,9 @@ DROP TABLE #ErrorLog;
         $results = Invoke-Sqlcmd -ServerInstance $instance -Query $query -ErrorAction Stop
 
         if ($results) {
+            #Running this for multiple instances this will attach SourceInstance as property to map errorlog to instance.
             $results | Add-Member -MemberType NoteProperty -Name "SourceInstance" -Value $instance
+            
             $allResults += $results
             Write-Host "  Found $($results.Count) matching entries." -ForegroundColor Yellow
         }
