@@ -6,6 +6,7 @@ such as log extraction, monitoring, and multi-instance reporting.
 | Script | Language | Purpose |
 |---|---|---|
 | `extract_sql_error_logs.ps1` | PowerShell | Pulls SQL Server error log entries above a severity threshold across multiple instances, exports to CSV |
+| `monitor_database_blocking.ps1` | PowerShell | Continuous monitoring of Locking/Blocking in SQL, Capture blocking chains for immediate triage |
 | `db_inventory_report.py` | Python | Connects to a list of instances, builds a consolidated inventory (size, recovery model, last backup dates), exports CSV + Excel |
 
 ## Requirements
@@ -16,6 +17,6 @@ such as log extraction, monitoring, and multi-instance reporting.
 - Do not hardcode credentials — the Python script reads passwords from
   environment variables named in a config file; the PowerShell script
   assumes integrated auth or can use a credential store.
-- Both scripts are read-only against the target instances.
-- Designed to be dropped into a scheduled task, SQL Agent job step, or
+- Scripts are read-only against the target instances.
+- Can be dropped into a scheduled task, SQL Agent job step, or
   Azure Automation runbook.
